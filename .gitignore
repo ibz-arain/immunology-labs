@@ -20,3 +20,5 @@ outputs/
 # IDEs
 .vscode/
 .idea/
+
+boxplot.png

@@ -49,7 +49,9 @@ def main():
     plt.xlabel("Cell population")
     plt.ylabel("Relative frequency (%)")
     plt.tight_layout()
-    plt.show()
+
+    plt.savefig("boxplot.png")
+    plt.close()
 
     # Statistical tests
     print("Mann-Whitney U test results")
