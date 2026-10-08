@@ -63,6 +63,18 @@ def main():
         conn,
     )
 
+    average_b_cells = pd.read_sql_query(
+        """
+        SELECT ROUND(AVG(b_cell), 2) AS average_b_cell_count
+        FROM samples
+        WHERE condition = 'melanoma'
+          AND sex = 'M'
+          AND response = 'yes'
+          AND time_from_treatment_start = 0
+    """,
+        conn,
+    )
+
     conn.close()
 
     print(
@@ -77,6 +89,9 @@ def main():
 
     print("\nSubjects by sex:")
     print(subjects_by_sex.to_string(index=False))
+
+    print("\nAverage B-cell count for melanoma male responders at baseline:")
+    print(average_b_cells.to_string(index=False))
 
 
 if __name__ == "__main__":
