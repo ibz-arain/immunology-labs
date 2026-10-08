@@ -51,91 +51,10 @@ def main():
     samples = load_samples()
     summary = make_summary(samples)
 
-    left, right = st.columns([3, 2])
-
-    with left:
-        response_samples = samples[
-            (samples["condition"] == "melanoma")
-            & (samples["treatment"] == "miraclib")
-            & (samples["sample_type"] == "PBMC")
-            & (samples["response"].isin(["yes", "no"]))
-        ]
-
-        response_summary = make_summary(response_samples)
-        response_summary = response_summary[["population", "response", "percentage"]]
-
-        fig, ax = plt.subplots(figsize=(6.2, 2.8))
-        sns.boxplot(
-            data=response_summary,
-            x="population",
-            y="percentage",
-            hue="response",
-            ax=ax,
-        )
-        ax.set_title("Responders vs Non-responders")
-        ax.set_xlabel("")
-        ax.set_ylabel("Relative frequency (%)")
-        st.pyplot(fig, use_container_width=False)
-        plt.close(fig)
-
-    with right:
-        baseline = samples[
-            (samples["condition"] == "melanoma")
-            & (samples["treatment"] == "miraclib")
-            & (samples["sample_type"] == "PBMC")
-            & (samples["time_from_treatment_start"] == 0)
-        ]
-
-        average_b_cells = samples[
-            (samples["condition"] == "melanoma")
-            & (samples["sex"] == "M")
-            & (samples["response"] == "yes")
-            & (samples["time_from_treatment_start"] == 0)
-        ]["b_cell"].mean()
-
-        metric1, metric2 = st.columns(2)
-
-        with metric1:
-            st.metric("Baseline samples", len(baseline))
-
-        with metric2:
-            st.metric("Average B cells", f"{average_b_cells:.2f}")
-
-        project_counts = baseline.groupby("project").size().reset_index(name="samples")
-
-        response_counts = (
-            baseline.groupby("response")["subject"]
-            .nunique()
-            .reset_index(name="subjects")
-        )
-
-        sex_counts = (
-            baseline.groupby("sex")["subject"].nunique().reset_index(name="subjects")
-        )
-
-        st.dataframe(
-            project_counts,
-            use_container_width=True,
-            hide_index=True,
-            height=110,
-        )
-
-        st.dataframe(
-            response_counts,
-            use_container_width=True,
-            hide_index=True,
-            height=110,
-        )
-
-        st.dataframe(
-            sex_counts,
-            use_container_width=True,
-            hide_index=True,
-            height=110,
-        )
+    st.subheader("Data Overview")
 
     population = st.selectbox(
-        "Cell population",
+        "Cell population:",
         ["All populations"] + POPULATIONS,
     )
 
@@ -150,8 +69,133 @@ def main():
         ],
         use_container_width=True,
         hide_index=True,
-        height=260,
+        height=220,
     )
+
+    st.subheader("Responders vs non-responders")
+
+    response_samples = samples[
+        (samples["condition"] == "melanoma")
+        & (samples["treatment"] == "miraclib")
+        & (samples["sample_type"] == "PBMC")
+        & (samples["response"].isin(["yes", "no"]))
+    ]
+
+    response_summary = make_summary(response_samples)
+    response_summary = response_summary[["population", "response", "percentage"]]
+
+    results = []
+
+    for population_name in POPULATIONS:
+        responders = response_summary[
+            (response_summary["population"] == population_name)
+            & (response_summary["response"] == "yes")
+        ]["percentage"]
+
+        non_responders = response_summary[
+            (response_summary["population"] == population_name)
+            & (response_summary["response"] == "no")
+        ]["percentage"]
+
+        result = mannwhitneyu(
+            responders,
+            non_responders,
+            alternative="two-sided",
+        )
+
+        results.append(
+            {
+                "population": population_name,
+                "p_value": round(result.pvalue, 6),
+                "significant": result.pvalue < 0.05,
+            }
+        )
+
+    results_df = pd.DataFrame(results)
+
+    plot_col, stats_col = st.columns([3, 2])
+
+    with plot_col:
+        fig, ax = plt.subplots(figsize=(6.2, 2.8))
+        sns.boxplot(
+            data=response_summary,
+            x="population",
+            y="percentage",
+            hue="response",
+            ax=ax,
+        )
+        ax.set_xlabel("")
+        ax.set_ylabel("Relative frequency (%)")
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+    with stats_col:
+        st.dataframe(
+            results_df,
+            use_container_width=True,
+            hide_index=True,
+            height=248,
+        )
+
+    st.subheader("Baseline subset")
+
+    baseline = samples[
+        (samples["condition"] == "melanoma")
+        & (samples["treatment"] == "miraclib")
+        & (samples["sample_type"] == "PBMC")
+        & (samples["time_from_treatment_start"] == 0)
+    ]
+
+    average_b_cells = samples[
+        (samples["condition"] == "melanoma")
+        & (samples["sex"] == "M")
+        & (samples["response"] == "yes")
+        & (samples["time_from_treatment_start"] == 0)
+    ]["b_cell"].mean()
+
+    metric1, metric2 = st.columns(2)
+
+    with metric1:
+        st.metric("Baseline samples", len(baseline))
+
+    with metric2:
+        st.metric("Average B cells", f"{average_b_cells:.2f}")
+
+    project_counts = baseline.groupby("project").size().reset_index(name="samples")
+
+    response_counts = (
+        baseline.groupby("response")["subject"].nunique().reset_index(name="subjects")
+    )
+
+    sex_counts = (
+        baseline.groupby("sex")["subject"].nunique().reset_index(name="subjects")
+    )
+
+    projects_col, response_col, sex_col = st.columns(3)
+
+    with projects_col:
+        st.dataframe(
+            project_counts,
+            use_container_width=True,
+            hide_index=True,
+            height=110,
+        )
+
+    with response_col:
+        st.dataframe(
+            response_counts,
+            use_container_width=True,
+            hide_index=True,
+            height=110,
+        )
+
+    with sex_col:
+        st.dataframe(
+            sex_counts,
+            use_container_width=True,
+            hide_index=True,
+            height=110,
+        )
 
 
 if __name__ == "__main__":
