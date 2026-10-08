@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# Data
+*.db
+*.sqlite
+*.sqlite3
+data/processed/
+outputs/
+
+.streamlit/
+.ipynb_checkpoints/
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
