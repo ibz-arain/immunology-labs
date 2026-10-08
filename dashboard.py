@@ -1,5 +1,4 @@
 import sqlite3
-import subprocess
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -44,7 +43,10 @@ def main():
     st.set_page_config(page_title="Immunology Labs", layout="wide")
 
     if not DB_PATH.exists():
-        subprocess.run(["python", "load_data.py"], check=True)
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_csv(Path(__file__).parent / "cell-count.csv")
+        df.to_sql("samples", conn, if_exists="replace", index=False)
+        conn.close()
 
     samples = load_samples()
     summary = make_summary(samples)
